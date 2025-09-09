@@ -22,9 +22,8 @@ jobs:
         run: docker build -t custom-mlflow:0.6 .
 
       - name: Tag Docker image
-        run: |
-          cd custom-mlflow
-          docker tag custom-mlflow:0.6 ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6 
+        working-directory: ./custom-mlflow
+        run: docker tag custom-mlflow:0.6 ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6 
 
       - name: Push Docker image
         run: docker push ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6    
