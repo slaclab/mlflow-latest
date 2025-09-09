@@ -16,13 +16,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN}}" | dockr login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN}}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Docker image 
         run: docker build -t custom-mlflow:0.6 .
 
       - name: Tag Docker image
-        run: dockr tag custom-mlflow:0.6 ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6
+        working-directory: ./custom-mlflow
+        run: docker tag custom-mlflow:0.6 ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6 
 
       - name: Push Docker image
         run: docker push ghcr.io/slaclab/mlflow-latest/custom-mlflow:0.6    
