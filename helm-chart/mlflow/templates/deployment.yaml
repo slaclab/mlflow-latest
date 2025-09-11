@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mlflow.fullname" . }}
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "mlflow.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mlflow.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "mlflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["mlflow"]
+          env:
+              {{- if .Values.postgresql.auth.existingSecret }}
+              - name: POSTGRES_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.postgresql.auth.existingSecret }}
+                    key: password
+              {{- end }}
+              {{- if .Values.services.minio.enabled}}
+              - name: MLFLOW_S3_ENDPOINT_URL
+                value: "http://{{ .Release.Name }}-minio:{{ .Values.minio.service.ports.api }}"
+            {{- if .Values.minio.auth.existingSecret }}
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.minio.auth.existingSecret }}
+                    key: root-user
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.minio.auth.existingSecret }}
+                    key: root-password
+            {{- else }}
+              - name: AWS_ACCESS_KEY_ID
+                value: "{{ .Values.minio.auth.rootUser }}"
+              - name: AWS_SECRET_ACCESS_KEY
+                value: "{{ .Values.minio.auth.rootPassword }}"
+            {{- end }}
+            {{- else }}
+              - name: MLFLOW_S3_ENDPOINT_URL
+                value: "{{ .Values.s3.url }}"
+            {{- if .Values.s3.secret }}
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.s3.secret }}
+                    key: user
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Values.s3.secret }}
+                    key: key
+            {{- else }}
+              - name: AWS_ACCESS_KEY_ID
+                value: "{{ .Values.s3.user }}"
+              - name: AWS_SECRET_ACCESS_KEY
+                value: "{{ .Values.s3.key }}"
+            {{- end }}
+          {{- end }}
+          args: ["server",
+                 "--backend-store-uri", "{{- template "services.postgres.uri" . }}",
+                 "--artifacts-destination", "s3://{{ .Values.MLFlow.artifacts.bucketName }}",
+                 "--serve-artifacts",
+                 "--host", "0.0.0.0",
+                 "--port", "5000"]
+          ports:
+            - name: mlflow
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 45
+            periodSeconds: 60
+            httpGet:
+              path: /
+              port: mlflow
+          readinessProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            httpGet:
+              path: /
+              port: mlflow
+{{- if .Values.oauth2Proxy.enabled }}
+        - name: sidecar
+          image: "{{- .Values.oauth2Proxy.repository}}:{{- .Values.oauth2Proxy.tag}}"
+
+          volumeMounts:
+            - name: oauth2-config
+              mountPath: "/etc/oauth2-proxy"
+              readOnly: true
+
+          ports:
+            - name: oauth
+              containerPort: 8443
+              protocol: TCP
+          env:
+            {{- if .Values.oauth2Proxy.secret }}
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oauth2Proxy.secret }}
+                  key: client_secret
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oauth2Proxy.secret }}
+                  key: cookie_secret
+            {{- else }}
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              value: "placeholder to keep OAuth2Proxy happy"
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              value: "placeholder12345"
+            {{- end }}
+
+          args: ["--http-address", "0.0.0.0:8443",
+                 "--upstream", "http://localhost:5000",
+                 "--config", "/etc/oauth2-proxy/config.cfg"
+          ]
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: oauth2-config
+          configMap:
+            name: {{ include "mlflow.fullname" . }}-oauth2-config
+{{- end }}
