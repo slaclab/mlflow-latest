@@ -10,7 +10,7 @@ image:
   repository: "ghcr.io/slaclab/mlflow-latest/custom-mlflow"
   pullPolicy: "Always"
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.7"
+  tag: "0.8"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -23,9 +23,9 @@ services:
     externalURI:
     type: LoadBalancer
 s3:
-  url: http://mlflow-minio-hl.mlflow.svc.cluster.local:9000
+  url: https://sdfdirects3.sdf.slac.stanford.edu
   # Secret with values for 'user' and 'key'
-  secret: minio-credentials
+  secret: ceph-credentials
   
 postgresql:
   enabled: true
