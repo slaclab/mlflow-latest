@@ -8,7 +8,7 @@ RUN apt-get update -y && \
 RUN pip install --upgrade pip
 RUN pip install PyMySQL mysqlclient && \   
     pip install psycopg2-binary && \
-    pip install mlflow[extras]==3.3.2 && \
+    pip install mlflow[extras]==3.4.0 && \
     pip install boto3
 
 ENV BACKEND_STORE_URI=
