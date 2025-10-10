@@ -16,11 +16,11 @@ nameOverride: ""
 fullnameOverride: ""
 services:
   postgres:
-    enabled: true
-    externalURI:
+    enabled: false
+    externalURI: "postgresql://app:password@mlflow-test-cluster-psql-rw:5432/mlflow"
   minio:
     enabled: false
-    externalURI:
+    externalURI: 
     type: LoadBalancer
 s3:
   url: https://sdfdirects3.sdf.slac.stanford.edu
@@ -28,7 +28,7 @@ s3:
   secret: ceph-credentials
   
 postgresql:
-  enabled: true
+  enabled: false
   image:
     registry: "scr.svc.stanford.edu"
     repository: "gopikab/bitnami/postgresql"

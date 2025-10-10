@@ -3,8 +3,12 @@ Construct a Postgres URI
 */}}
 
 {{- define "services.postgres.uri"}}
-{{- if .Values.postgresql.auth.existingSecret }}postgresql://{{  .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.database }}
-{{- else }}postgresql://{{  .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.database }}
+{{- if .Values.services.postgres.externalURI -}}
+{{ .Values.services.postgres.externalURI }}
+{{- else if .Values.postgresql.auth.existingSecret -}}
+postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}
+{{- else -}}
+postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}
 {{- end }}
 {{- end }}
 
