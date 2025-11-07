@@ -10,8 +10,9 @@ RUN apt-get update -y && \
 RUN pip install --upgrade pip
 RUN pip install PyMySQL mysqlclient && \   
     pip install psycopg2-binary && \
+    pip install boto3 && \
     pip install mlflow[extras,auth]==3.4.0 && \
-    pip install boto3
+    pip install flask-wtf
 
 ENV BACKEND_STORE_URI=
 ENV DEFAULT_ARTIFACT_ROOT=/opt/artifact
