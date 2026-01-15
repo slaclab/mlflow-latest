@@ -11,7 +11,7 @@ RUN pip install --upgrade pip
 RUN pip install PyMySQL mysqlclient && \   
     pip install psycopg2-binary && \
     pip install boto3 && \
-    pip install mlflow[extras,auth]==3.4.0 && \
+    pip install mlflow[extras,auth]==3.8.1 && \
     pip install flask-wtf
 
 ENV BACKEND_STORE_URI=
